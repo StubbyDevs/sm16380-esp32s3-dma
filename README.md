@@ -194,9 +194,10 @@ drift, config grammar and timing) are written up in [extras/PROTOCOL.md](extras/
 - **The panel shows garbage after its 5 V supply blips.** The chip config is lost; it comes back at the next
   config rewrite. Call `requestConfig()` if you can detect the blip, or shorten `setConfigInterval()`.
   Keep calling `show()` now and then even for a still picture: the rewrite happens inside `show()`.
-- **A config rewrite is visible.** For the ~100 ms it takes, the clock stops between registers, and the
-  panel shows one row lit. It happens on the first `show()` and every 30 minutes by default. Holding OE
-  through the config might avoid it, but that hasn't been tried on a panel yet.
+- **A config rewrite flashes the whole screen** for about 0.1 s: the scan stops while the 32 registers go
+  in, then a held-OE upload re-syncs the row count. It happens on the first `show()` and every 30 minutes
+  by default (`setConfigInterval(0)` turns the periodic one off if your panel power is solid). Holding OE
+  high during config was tried on a panel: the config still takes, but the flash stays.
 - Call `show()` from one task. `flashHold()` may be called from any task.
 
 ## Testing

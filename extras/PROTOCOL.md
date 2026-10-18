@@ -40,8 +40,10 @@ clocks**. R, G and B lanes each get their own register value (the R/G/B tables d
 and the top and bottom lanes get the same value.
 
 Clock period: ~1.2 us worked well (it's slow, but config happens rarely). After each register, there's a ~2 ms
-pause with the clock stopped. With OE low during config, the panel shows one row lit for the ~100 ms the
-config takes. Whether OE can be held high instead (a blank rather than a lit row) is untested.
+pause with the clock stopped. A config rewrite flashes the whole screen: the scan stops for the ~100 ms the
+config takes, and the held-OE upload after it blanks the panel again. Holding OE high through the config
+works (the chip still takes it) but doesn't remove the flash. An untried idea: scan during the pauses
+between registers instead of stopping the clock.
 
 Register values: kingdo9's `sm16380sh.profiles`, **regtype2** (`src/sm16380_encoder.h`, `CFG_R/G/B`). The
 first register is `0x0200 | (scan lines - 1)`: `0x021f` for 1/32 scan.
