@@ -54,6 +54,8 @@ class SM16380Panel {
  public:
   // Allocates the buffers (frame and programs in PSRAM, scan chains in
   // internal RAM) and starts the LCD_CAM. The panel shows black until show().
+  // False (and nothing allocated) if out of memory, no GDMA channel is free,
+  // the layout has more than 3 panels, or it was already called.
   bool begin(const SM16380Pins &pins, const SM16380Layout &layout = SM16380Layout());
 
   int width() const { return enc_.width; }
@@ -65,9 +67,11 @@ class SM16380Panel {
 
   static uint16_t color(uint8_t r, uint8_t g, uint8_t b) { return (r >> 4) << 8 | (g >> 4) << 4 | (b >> 4); }
   void setPixel(int x, int y, uint16_t rgb444) {
-    if ((unsigned)x < (unsigned)enc_.width && (unsigned)y < (unsigned)enc_.height) fb_[y * enc_.width + x] = rgb444;
+    if ((unsigned)x < (unsigned)enc_.width && (unsigned)y < (unsigned)enc_.height && fb_) fb_[y * enc_.width + x] = rgb444;
   }
-  uint16_t getPixel(int x, int y) const { return fb_[y * enc_.width + x]; }
+  uint16_t getPixel(int x, int y) const {
+    return (unsigned)x < (unsigned)enc_.width && (unsigned)y < (unsigned)enc_.height && fb_ ? fb_[y * enc_.width + x] : 0;
+  }
   void fill(uint16_t rgb444);
   void clear() { fill(0); }
 
@@ -110,16 +114,20 @@ class SM16380Panel {
     bool continuous;
   };
 
-  bool alloc(Chain &c, size_t words, bool psram);
+  static const int PAUSE_WORDS = 2016;  // one 4032-byte descriptor of idle lines
+
+  bool alloc(Chain &c, size_t words, bool psram, int maxDesc = 0);
+  void freeAll();
+  void buildConfig();
   void finish(Chain &c);
   void *firstDesc(Chain &c);
   void link(Chain &from, void *to);
   void restart();
   bool waitSwitch();
-  void showLocked(bool config);
+  bool showLocked(bool config);
 
   sm16380::Encoder enc_;
-  uint16_t *fb_ = nullptr;
+  uint16_t *fb_ = nullptr, *pause_ = nullptr;
   Chain scan_[2] = {}, prog_[2] = {}, cfg_ = {};
   int progIdx_ = 0, activeScan_ = 0, pendingScan_ = 0;
   uint32_t pendingTarget_ = 0;

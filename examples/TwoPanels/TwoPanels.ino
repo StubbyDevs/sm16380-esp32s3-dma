@@ -33,4 +33,9 @@ void setup() {
   panel.show();
 }
 
-void loop() { delay(1000); }
+void loop() {
+  // Re-send now and then, so the periodic config rewrite can happen (a panel
+  // power blip loses the chip config).
+  delay(60000);
+  panel.show();
+}

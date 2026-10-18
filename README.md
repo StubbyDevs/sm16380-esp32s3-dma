@@ -15,12 +15,13 @@ drive them. This library does, for the SM16380, on a $10 ESP32-S3.
 - **No blink on update ("seamless").** The scan keeps running through each upload, and every upload
   is padded to whole scan passes, so the chip's row count never drifts (see [the protocol notes](extras/PROTOCOL.md)).
 - **Hardware scan.** LCD_CAM (i80, 16-bit) + GDMA stream every line, the panel clock included. The scan
-  is a circular DMA chain in internal RAM: no interrupts or timing jitter, and it keeps running while
-  WiFi and TLS run.
+  is a circular DMA chain in internal RAM: no interrupts or timing jitter. It runs from internal RAM, so it keeps
+  going through WiFi, TLS and even flash writes.
 - **Fast updates.** Two program buffers are pipelined. When only the pixels changed, just the pixel bits
   are re-encoded. The scan chains are cached.
 - **Up to 3 chained panels** as one picture (e.g. 256x64 or 128x192), side by side, stacked or snake-wired.
-- **Self-healing.** A DMA stall is detected, and the driver restarts and re-syncs the panel. The chip config
+- **Self-healing.** If a frame's upload (streamed from PSRAM) ever stalls, `show()` notices, restarts the DMA
+  and re-syncs the panel. The chip config
   is rewritten periodically (it lives in panel RAM and is lost on a 5 V blip).
 - **Safe flash writes.** `flashHold()` / `flashRelease()` keep the DMA off PSRAM while NVS/OTA writes run.
 - Optional **Adafruit_GFX** front end (text, shapes, bitmaps).
@@ -59,11 +60,22 @@ For your own wiring: `SM16380Pins pins = {r1, g1, b1, r2, g2, b2, a, b, c, d, e,
 ## Install
 
 - **Arduino IDE / arduino-cli:** copy this folder into your `libraries/` folder, or *Sketch > Include Library > Add .ZIP Library*.
-- **PlatformIO:** `lib_deps = https://github.com/StubbyDevs/sm16380-esp32s3-dma.git`, plus
-  `board_build.arduino.memory_type = qio_opi` (N16R8) and `build_flags = -DBOARD_HAS_PSRAM`.
+- **PlatformIO:** needs arduino-esp32 3.x, which the stock `espressif32` platform doesn't ship; use a
+  [pioarduino](https://github.com/pioarduino/platform-espressif32/releases) platform release. Not covered by CI yet:
 
-Built against arduino-esp32 **3.3.x** (ESP-IDF 5.5). It uses the IDF's private GDMA API (`esp_private/gdma.h`),
-so other core versions may need small changes.
+  ```ini
+  [env:esp32s3]
+  platform = https://github.com/pioarduino/platform-espressif32/releases/download/<release>/platform-espressif32.zip
+  board = esp32-s3-devkitc-1
+  framework = arduino
+  board_build.arduino.memory_type = qio_opi   ; N16R8 / N8R8
+  build_flags = -DBOARD_HAS_PSRAM
+  lib_deps = https://github.com/StubbyDevs/sm16380-esp32s3-dma.git
+  ```
+
+**Tested with arduino-esp32 3.3.8** (ESP-IDF 5.5), which CI builds against. The driver uses the IDF's private
+GDMA headers (`esp_private/gdma.h`, `hal/gdma_ll.h`), which move between IDF versions, so other cores may
+need small changes.
 
 ## Quick start
 
@@ -123,12 +135,17 @@ At the default bus rate (10 M words/s; one panel clock = 2 words while scanning 
 | Upload (one frame) | ~13.4 ms | ~26.7 ms | ~40 ms |
 | Max frame rate | **~67 fps** | ~35 fps | ~24 fps |
 | Scan pass / row refresh | 1.49 ms (~670 Hz) | same | same |
-| PSRAM used | ~2.6 MB | ~3.7 MB | ~4.8 MB |
-| Internal RAM | ~60 KB (two scan chains) + descriptors | same | same |
+| PSRAM used | ~1.3 MB | ~2.4 MB | ~3.5 MB |
+| Internal RAM | ~70 KB (two scan chains, the shared config pause, descriptors) | ~75 KB | ~80 KB |
 
-Frame rate is limited by the upload, not the CPU: encoding a frame where only pixels changed takes a few ms.
-Most of the PSRAM is the config program, which is long because every register goes through the whole chain
-at a slow clock.
+A frame takes its upload plus at least one scan pass (a new frame always starts at the end of a pass), so
+one panel tops out at about 1 / (13.4 + 1.5 ms) = 67 fps. Run `Plasma` to see the number on yours. The
+limit is the upload, not the CPU: re-encoding a frame where only the pixels changed takes a few ms.
+
+Most of the PSRAM is the two upload programs and the config program. The config is long because every
+register goes through the whole chain at a slow clock. Its 2 ms pauses aren't stored but served from one
+shared buffer. One panel needs ~1.3 MB, so 2 MB-PSRAM modules (e.g. N8R2) should work; only N16R8 has been
+tested.
 
 ## How it works
 
@@ -160,6 +177,10 @@ drift, config grammar and timing) are written up in [extras/PROTOCOL.md](extras/
   first: it should be the corner panel your ESP plugs into.
 - **The panel shows garbage after its 5 V supply blips.** The chip config is lost; it comes back at the next
   config rewrite. Call `requestConfig()` if you can detect the blip, or shorten `setConfigInterval()`.
+  Keep calling `show()` now and then even for a still picture: the rewrite happens inside `show()`.
+- **A config rewrite is visible.** For the ~100 ms it takes, the clock stops between registers, and the
+  panel shows one row lit. It happens on the first `show()` and every 30 minutes by default. Holding OE
+  through the config might avoid it, but that hasn't been tried on a panel yet.
 - Call `show()` from one task. `flashHold()` may be called from any task.
 
 ## Testing

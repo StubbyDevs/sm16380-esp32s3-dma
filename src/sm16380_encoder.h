@@ -2,7 +2,7 @@
 // (one 16-bit word per bus cycle) that drives an SM16380 S-PWM panel.
 //
 // Hardware-free on purpose: SM16380_DMA.cpp streams these words with LCD_CAM +
-// GDMA, and test/encoder_test.py compiles this header on a PC to check the
+// GDMA, and test/encoder_test.cpp compiles this header on a PC to check the
 // stream against a reference model of the protocol.
 //
 // Bus word bits (one per panel line):
@@ -139,14 +139,21 @@ class Encoder {
   }
 
   // All 32 config registers, each followed by 2 ms with the clock stopped.
+  // (The DMA driver writes configBegin() + configReg() and serves the pauses
+  // from one shared buffer instead of storing them: same words on the bus.)
   void config() {
-    k_ = cfgK();
-    lines &= ~(BUS_OE | BUS_LAT | BUS_RGB);
+    configBegin();
     for (int i = 0; i < 32; i++) {
-      writeReg(CFG_R[i], CFG_G[i], CFG_B[i]);
-      put(lines, 2000 * 160 / busDiv);
+      configReg(i);
+      put(lines, CONFIG_PAUSE_WORDS);
     }
   }
+  void configBegin() {
+    k_ = cfgK();
+    lines &= ~(BUS_OE | BUS_LAT | BUS_RGB);
+  }
+  void configReg(int i) { writeReg(CFG_R[i], CFG_G[i], CFG_B[i]); }
+  static constexpr int CONFIG_PAUSE_WORDS = 2016 * 10;  // ~2 ms at 10 M words/s (10 x 4032-byte descriptors)
 
   // The frame's upload. continuous: keep scanning through it (no blank) and
   // pad to whole scan passes; otherwise hold OE for the whole upload, which

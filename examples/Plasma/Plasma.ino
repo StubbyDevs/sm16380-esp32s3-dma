@@ -27,8 +27,8 @@ void loop() {
   t++;
   if (++frames == 200) {
     SM16380Stats s = panel.stats();
-    Serial.printf("%.1f fps (encode %u us, %u of %u frames patched)\n", frames * 1000.0f / (millis() - t0), s.encodeUs,
-                  s.patched, s.uploads);
+    Serial.printf("%.1f fps (encode %lu us, %lu of %lu frames patched)\n", frames * 1000.0f / (millis() - t0), (unsigned long)s.encodeUs,
+                  (unsigned long)s.patched, (unsigned long)s.uploads);
     frames = 0;
     t0 = millis();
   }

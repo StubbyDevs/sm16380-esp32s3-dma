@@ -40,7 +40,8 @@ clocks**. R, G and B lanes each get their own register value (the R/G/B tables d
 and the top and bottom lanes get the same value.
 
 Clock period: ~1.2 us worked well (it's slow, but config happens rarely). After each register, there's a ~2 ms
-pause with the clock stopped.
+pause with the clock stopped. With OE low during config, the panel shows one row lit for the ~100 ms the
+config takes. Whether OE can be held high instead (a blank rather than a lit row) is untested.
 
 Register values: kingdo9's `sm16380sh.profiles`, **regtype2** (`src/sm16380_encoder.h`, `CFG_R/G/B`). The
 first register is `0x0200 | (scan lines - 1)`: `0x021f` for 1/32 scan.
@@ -101,6 +102,7 @@ same scan state. A held-OE upload is still used after config and after a DMA res
 | Config clock | 12 words per clock = 1.2 us |
 | Scan pass | 14,848 words = 1.485 ms |
 | One-panel upload | 65,536 clocks + padding = 9 scan passes = 13.4 ms |
+| Frame period (back to back) | upload + at least 1 scan pass = 14.9 ms, ~67 fps |
 
 ## Things that didn't matter / didn't work
 

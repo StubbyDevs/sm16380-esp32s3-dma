@@ -1,0 +1,28 @@
+name: Panel problem
+description: The panel shows nothing, garbage, flicker, or the wrong layout
+body:
+  - type: input
+    id: column
+    attributes: { label: Column driver chip marking, description: "e.g. SM16380SA (read it off the back of the panel)" }
+    validations: { required: true }
+  - type: input
+    id: row
+    attributes: { label: Row driver chip marking, description: "e.g. SM5166PF" }
+    validations: { required: true }
+  - type: input
+    id: panel
+    attributes: { label: Panel, description: "resolution, pitch, scan (e.g. 128x64 P2.5 1/32)" }
+    validations: { required: true }
+  - type: input
+    id: board
+    attributes: { label: Board and adapter, description: "e.g. ESP32-S3-DevKitC-1 N16R8, Seengreat adapter V2.x" }
+  - type: input
+    id: core
+    attributes: { label: arduino-esp32 version, description: "e.g. 3.3.8" }
+  - type: dropdown
+    id: begin
+    attributes: { label: Did begin() return true?, options: ["yes", "no", "didn't check"] }
+  - type: textarea
+    id: what
+    attributes: { label: What you see, description: "A photo of the panel helps most. Include the serial log (Core Debug Level: Info)." }
+    validations: { required: true }

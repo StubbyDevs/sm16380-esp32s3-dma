@@ -6,7 +6,13 @@
 //      config, uploads, scan; held and continuous uploads; several upload speeds.
 //   2. A patched upload (pixel bits only) equals a full encode.
 //   3. Continuous uploads all start in the same scan state.
-//   4. Chained panels: a shift-register model of the chain, fed the stream,
+//   4. Golden streams: the same stream as the firmware this library was taken
+//      from, which runs on real panels (hashes in testGolden). This pins the
+//      constants (232 clocks per row, latch counts, register values) that the
+//      reference model shares with the encoder.
+//   5. Every program the DMA driver builds is whole 64-byte blocks, so the
+//      driver's padding never has to add words.
+//   6. Chained panels: a shift-register model of the chain, fed the stream,
 //      leaves every chip holding the pixels its panel's place in the picture
 //      says it should (the expected places are written out by hand).
 // The chain direction itself (firstShiftIsFar) can only be checked on a panel.
@@ -165,6 +171,52 @@ static void randomFrame(const Encoder &e) {
 
 // ---------------------------------------------------------------- tests
 
+static uint64_t fnv(uint64_t h, uint16_t w) {
+  h ^= w;
+  return h * 1099511628211ull;
+}
+static uint64_t hashEdges(const Stream &s, size_t from, size_t to) {
+  uint64_t h = 1469598103934665603ull;
+  uint16_t prev = from ? s.buf[from - 1] : 0;
+  for (size_t i = from; i < to; i++) {
+    uint16_t w = s.buf[i];
+    if (!(prev & BUS_CLK) && (w & BUS_CLK)) h = fnv(h, w & ~BUS_CLK);
+    prev = w;
+  }
+  return h;
+}
+static uint64_t hashWords(const Stream &s, size_t from, size_t to) {
+  uint64_t h = 1469598103934665603ull;
+  for (size_t i = from; i < to; i++) h = fnv(h, s.buf[i]);
+  return h;
+}
+
+// Config (clock edges: the pause length differs, 2.016 ms here vs 2 ms there),
+// a held upload + one scan pass, a continuous upload + one scan pass, word for
+// word. Hashes from the firmware's encoder, 2026-10-18.
+static void testGolden(int px, uint64_t cfg, uint64_t held, size_t heldN, uint64_t cont, size_t contN) {
+  Encoder e;
+  e.setLayout(px, 1, Corner::TopLeft, false);
+  e.fb = picture.data();
+  for (int i = 0; i < e.width * e.height; i++) picture[i] = (i * 2654435761u) >> 20 & 0xfff;
+  static std::vector<uint16_t> big(8000000);
+  Stream s{big.data(), big.size(), 0};
+  e.out = &s;
+  e.config();
+  size_t a = s.n;
+  e.upload(false);
+  e.scanPass();
+  size_t b = s.n;
+  e.upload(true);
+  e.scanPass();
+  CHECK(hashEdges(s, 0, a) == cfg, "%dx1 golden: config differs from the firmware's", px);
+  CHECK(b - a == heldN && hashWords(s, a, b) == held, "%dx1 golden: held upload + scan differs from the firmware's", px);
+  CHECK(s.n - b == contN && hashWords(s, b, s.n) == cont, "%dx1 golden: continuous upload + scan differs from the firmware's", px);
+  // whole 64-byte blocks (32 words): a continuous upload, a scan pass
+  CHECK((s.n - b) % 32 == 0 && (2 * SCAN_CLKS) % 32 == 0, "%dx1: a program is not whole 64-byte blocks", px);
+  printf("%dx1: same stream as the firmware (golden hashes)\n", px);
+}
+
 static void testAgainstReference() {
   static std::vector<uint16_t> big(8000000);
   for (int cont = 0; cont < 2; cont++)
@@ -276,6 +328,8 @@ static void testChain(const char *name, int px, int py, Corner first, bool snake
 
 int main() {
   testAgainstReference();
+  testGolden(1, 0xf210d1b393e32b63ull, 0xa0c30a5553c41799ull, 145928, 0x11a56127c8d49e79ull, 148480);
+  testGolden(2, 0xd98c5d7e9a1713c3ull, 0x52fe95301f27ec01ull, 277000, 0xf500e862d95510e1ull, 282112);
   Encoder one;
   testPatch(one);
   printf("1 panel: patch and continuous start state checked\n");
