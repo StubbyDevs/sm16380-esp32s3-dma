@@ -4,6 +4,10 @@ A DMA driver for HUB75 LED panels with **SM16380 S-PWM** column drivers, for the
 The row scan loops in hardware with no CPU time, and new frames go in at the end of a scan pass.
 Updates don't blink or tear, gradients are smooth, and a 128x64 panel animates at ~67 fps.
 
+![Two 128x64 SM16380 panels as one 256x64 display, running the Plasma example](extras/demo.gif)
+
+*Two chained 128x64 P2.5 SM16380 panels on an ESP32-S3, as one 256x64 display (the `Plasma` example).*
+
 S-PWM panels (SM16380, ICN2153, FM6353, ...) look much better than the usual HUB75
 shift-register panels: smooth low levels, no scan lines on camera, high refresh. But they aren't
 shift registers. Each chip has its own frame memory and makes the PWM itself, and has to be
