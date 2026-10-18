@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Host tests for the encoder: ./test/run.sh (any C++17 compiler).
 set -e
 cd "$(dirname "$0")"

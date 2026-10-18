@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 StubbyDevs. SM16380_DMA is free software under the GNU
+// GPL v3 or later; see LICENSE. It comes with ABSOLUTELY NO WARRANTY.
 // A full-screen animation as fast as the encoder goes; prints the frame rate.
 #include <SM16380_DMA.h>
 

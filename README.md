@@ -241,4 +241,6 @@ The protocol was worked out on the glass, with these as references:
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+**GPL-3.0-or-later**, see [LICENSE](LICENSE). Use it, change it and ship it, including in products you sell,
+as long as you share the source of your firmware under the GPL too. Version 0.1.0 was released under MIT
+and stays MIT; 0.2.0 on are GPL-3.0.

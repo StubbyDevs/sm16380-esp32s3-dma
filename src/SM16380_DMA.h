@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 StubbyDevs. SM16380_DMA is free software under the GNU
+// GPL v3 or later; see LICENSE. It comes with ABSOLUTELY NO WARRANTY.
 // SM16380_DMA: an ESP32-S3 driver for HUB75 LED panels with SM16380 S-PWM
 // column drivers (128 x 64, 1/32 scan, binary A-E row decoder such as the
 // SM5166).

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 StubbyDevs. SM16380_DMA is free software under the GNU
+// GPL v3 or later; see LICENSE. It comes with ABSOLUTELY NO WARRANTY.
 // SM16380 stream encoder: turns a frame into the exact sequence of line states
 // (one 16-bit word per bus cycle) that drives an SM16380 S-PWM panel.
 //

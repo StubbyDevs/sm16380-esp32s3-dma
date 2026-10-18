@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 StubbyDevs. SM16380_DMA is free software under the GNU
+// GPL v3 or later; see LICENSE. It comes with ABSOLUTELY NO WARRANTY.
 // Host checks for the SM16380 stream encoder (test/run.sh).
 //
 //   1. The DMA word stream gives the same line state as a reference model of

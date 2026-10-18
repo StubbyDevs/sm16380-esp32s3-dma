@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 StubbyDevs. SM16380_DMA is free software under the GNU
+// GPL v3 or later; see LICENSE. It comes with ABSOLUTELY NO WARRANTY.
 // LCD_CAM + GDMA streaming for SM16380_DMA.h.
 //
 // LCD_CAM in i80 mode streams 16-bit words from GDMA, one every 100 ns

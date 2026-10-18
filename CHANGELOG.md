@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 (2026-10-18)
+
+- License changed from MIT to **GPL-3.0-or-later**. 0.1.0 remains available under MIT.
+- No code changes.
+
 ## 0.1.0 (2026-10-18)
 
 First release, tested on panels: 128x64 P2.5 SM16380SA + SM5166PF, one and two chained, on an
