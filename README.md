@@ -116,6 +116,7 @@ Examples: `Basic` (colour bars and gradients), `Plasma` (full-speed animation, p
 | `setPixel(x, y, c)`, `getPixel(x, y)`, `fill(c)`, `clear()` | Drawing helpers |
 | `static color(r, g, b)` | 8-bit RGB to RGB444 |
 | `show()` | Encode the frame and queue it for the end of the current scan pass. You can draw the next frame as soon as it returns |
+| `setBusDivider(div)` | Before `begin()`: 16 (default, 5 MHz panel clock) or 12 (6.7 MHz, ~20% more fps). Both tested on panels; faster is refused (see Performance) |
 | `setSeamless(bool)` | Default on. Off: OE is held through each upload (the panel blanks ~13 ms per panel) |
 | `setConfigInterval(ms)`, `requestConfig()` | Chip config rewrite: first `show()`, then every 30 min by default |
 | `flashHold()`, `flashRelease()` | Bracket flash writes (NVS, OTA, file systems). Safe from any task |
@@ -128,7 +129,7 @@ so even level 1 is smooth.
 
 ## Performance
 
-At the default bus rate (10 M words/s; one panel clock = 2 words while scanning and uploading):
+At the default bus rate (10 M words/s, `setBusDivider(16)`; one panel clock = 2 words while scanning and uploading):
 
 | | 1 panel | 2 panels | 3 panels |
 |---|---|---|---|
@@ -137,6 +138,21 @@ At the default bus rate (10 M words/s; one panel clock = 2 words while scanning 
 | Scan pass / row refresh | 1.49 ms (~670 Hz) | same | same |
 | PSRAM used | ~1.3 MB | ~2.4 MB | ~3.5 MB |
 | Internal RAM | ~70 KB (two scan chains, the shared config pause, descriptors) | ~75 KB | ~80 KB |
+
+Measured with the `Plasma` example (full-screen animation, every frame different):
+
+| Bus divider | Panel clock | 1 panel | 2 panels |
+|---|---|---|---|
+| 16 (default) | 5 MHz | 67.4 fps | 35.5 fps |
+| 12 | 6.7 MHz | 80.0 fps | 42.2 fps |
+| 10 | 8 MHz | stalls | stalls |
+
+**The ceiling is PSRAM, not the panel.** Each frame streams out of PSRAM at the bus rate: 26.7 MB/s at
+divider 12 works, 32 MB/s at 10 doesn't. The DMA falls behind, stalls, and `show()` keeps restarting it.
+It doesn't depend on the number of panels, which is why `setBusDivider()` refuses anything below 12.
+With two panels at 12, re-encoding the frame (also PSRAM-bound) is the next limit. Going faster would
+need the stream to come from internal RAM (bounce buffers, or generating it as it plays): a good
+contribution if you want 100+ fps.
 
 A frame takes its upload plus at least one scan pass (a new frame always starts at the end of a pass), so
 one panel tops out at about 1 / (13.4 + 1.5 ms) = 67 fps. Run `Plasma` to see the number on yours. The

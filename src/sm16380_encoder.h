@@ -153,7 +153,7 @@ class Encoder {
     lines &= ~(BUS_OE | BUS_LAT | BUS_RGB);
   }
   void configReg(int i) { writeReg(CFG_R[i], CFG_G[i], CFG_B[i]); }
-  static constexpr int CONFIG_PAUSE_WORDS = 2016 * 10;  // ~2 ms at 10 M words/s (10 x 4032-byte descriptors)
+  static constexpr int CONFIG_PAUSE_WORDS = 2016 * 10;  // ~2 ms at the default 10 M words/s (the DMA driver scales it)
 
   // The frame's upload. continuous: keep scanning through it (no blank) and
   // pad to whole scan passes; otherwise hold OE for the whole upload, which

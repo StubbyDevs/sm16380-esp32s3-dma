@@ -6,6 +6,7 @@ static uint8_t sine[256];
 
 void setup() {
   Serial.begin(115200);
+  // panel.setBusDivider(12);  // ~20% faster (tested); the default is 16
   if (!panel.begin(SM16380Pins::seengreatS3())) {
     Serial.println("panel.begin failed (is PSRAM enabled?)");
     while (true) delay(1000);

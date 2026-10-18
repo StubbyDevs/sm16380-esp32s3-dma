@@ -81,6 +81,14 @@ class SM16380Panel {
   // pixels changed (the usual case) just their bits are rewritten.
   void show();
 
+  // Bus speed, before begin(): 160 MHz / div words per second, the panel
+  // clock is half that. 16 (5 MHz, the default) and 12 (6.7 MHz, ~20% more
+  // frames per second) are tested on panels. Faster is refused: from 10 on,
+  // the DMA can't read frames out of PSRAM fast enough and stalls. False if
+  // out of range or begin() already ran.
+  bool setBusDivider(int div);
+  int busDivider() const { return enc_.busDiv; }
+
   // Seamless (default on): keep scanning while a frame uploads, so the panel
   // never goes dark. Off: hold OE through each upload, which blanks the
   // panel for the upload (~13 ms per panel) but also re-syncs its row count.
@@ -116,6 +124,7 @@ class SM16380Panel {
 
   static const int PAUSE_WORDS = 2016;  // one 4032-byte descriptor of idle lines
 
+  int pauseDescs() const;
   bool alloc(Chain &c, size_t words, bool psram, int maxDesc = 0);
   void freeAll();
   void buildConfig();

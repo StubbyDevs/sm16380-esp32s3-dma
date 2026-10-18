@@ -125,11 +125,26 @@ void SM16380Panel::buildConfig() {
   for (int i = 0; i < 32 && n < cfg_.maxDesc; i++) {
     for (size_t off = start[i] * 2; off < end[i] * 2; off += DESC_BYTES)
       add((uint8_t *)s.buf + off, min(end[i] * 2 - off, DESC_BYTES));
-    for (int j = 0; j < sm16380::Encoder::CONFIG_PAUSE_WORDS / PAUSE_WORDS; j++) add((uint8_t *)pause_, PAUSE_WORDS * 2);
+    for (int j = 0; j < pauseDescs(); j++) add((uint8_t *)pause_, PAUSE_WORDS * 2);
   }
   cfg_.nDesc = n;
   d[n - 1].next = nullptr;
   esp_cache_msync(s.buf, s.n * 2, ESP_CACHE_MSYNC_FLAG_DIR_C2M);
+}
+
+bool SM16380Panel::setBusDivider(int div) {
+  if (lock_ || div < 12 || div > 64) {
+    log_e("SM16380: bus divider %d refused (12..64, before begin())", div);
+    return false;
+  }
+  enc_.busDiv = div;
+  return true;
+}
+
+// Pause descriptors after each config register: at least 2 ms at this bus rate.
+int SM16380Panel::pauseDescs() const {
+  int words = 2000 * 160 / enc_.busDiv;
+  return (words + PAUSE_WORDS - 1) / PAUSE_WORDS;
 }
 
 void *SM16380Panel::firstDesc(Chain &c) { return &DESC(c)[0]; }
@@ -156,7 +171,7 @@ bool SM16380Panel::begin(const SM16380Pins &pins, const SM16380Layout &layout) {
   // chain (padded to 64 bytes); the pauses are shared (buildConfig).
   size_t regWords = (size_t)(40 + 6 * (chips * 16 + 8)) * enc_.cfgK() + 32;
   size_t cfgWords = 32 * regWords;
-  int cfgDesc = 32 * ((int)(regWords * 2 / DESC_BYTES) + 2 + Encoder::CONFIG_PAUSE_WORDS / PAUSE_WORDS);
+  int cfgDesc = 32 * ((int)(regWords * 2 / DESC_BYTES) + 2 + pauseDescs());
   // Upload: every chip's 16 bits for 32 rows x 16 slots, plus up to a pass of padding.
   size_t upWords = (size_t)(ROWS * 16 * chips * 16 + SCAN_CLKS + 64) * enc_.upK;
   size_t scanWords = 2 * SCAN_CLKS;
